@@ -1,20 +1,24 @@
 package com.da.chatme.Presentation.chat.components
 
 
-
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,17 +35,20 @@ import com.da.chatme.R
 import com.da.chatme.domain.model.Message
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 @Destination
 fun ChatRoomScreen(
     nav: DestinationsNavigator,
-    chatViewModel:ChatViewModel= hiltViewModel()
+    chatViewModel: ChatViewModel = hiltViewModel()
 
 ) {
 
     var sendMessage = rememberSaveable { mutableStateOf("") }
 
+    val scope = rememberCoroutineScope()
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
@@ -171,15 +178,19 @@ fun ChatRoomScreen(
 
         val messages = chatViewModel.messages.data ?: emptyList()
 
+        val scrollState = rememberLazyListState()
+
 
         LazyColumn(
             modifier = Modifier
                 .padding(0.dp, 0.dp, 0.dp, 0.dp)
                 .weight(1f)
-                .fillMaxSize()
+                .fillMaxSize(),
+            state = scrollState
         ) {
-             itemsIndexed(messages) { i,message ->
-                AnimatedVisibility(chatViewModel.isMe(message.email)) {
+
+            itemsIndexed(messages) { i, message ->
+                if (chatViewModel.isMe(message.email)) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
                         horizontalArrangement = Arrangement.Start
@@ -199,8 +210,7 @@ fun ChatRoomScreen(
                         }
 
                     }
-                }
-                AnimatedVisibility(!chatViewModel.isMe(message.email)){
+                } else {
                     Row(
                         modifier = Modifier.fillMaxSize(),
                         horizontalArrangement = Arrangement.End
@@ -223,6 +233,9 @@ fun ChatRoomScreen(
                 }
             }
         }
+        if(messages.isNotEmpty()){
+            scrollToEnd(scope,scrollState,messages.size-1)
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -237,80 +250,86 @@ fun ChatRoomScreen(
                         Row() {
                             TextField(
                                 modifier = Modifier.fillMaxWidth(),
-                                value = sendMessage.value, onValueChange = { sendMessage.value = it },
+                                value = sendMessage.value,
+                                onValueChange = { sendMessage.value = it },
                                 textStyle = TextStyle.Default.copy(
                                     fontSize = 14.sp,
                                     color = androidx.compose.ui.graphics.Color.Black
                                 ),
 
-                            colors = TextFieldDefaults.textFieldColors(
-                                textColor = Color.Gray,
-                                disabledTextColor = Color.Transparent,
-                                backgroundColor = Color(0xFFFAFAFA),
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent
-                            ),
-                            placeholder = {
-                                Text(
-                                    text = "Type something..",
-                                    fontSize = 14.sp,
-                                    color = Color(0xFF9A9A9A),
-                                    modifier = Modifier.padding(5.dp,0.dp,0.dp,0.dp)
-                                )
-                            },
-                            leadingIcon = {
-                                Button(
-                                    onClick = {
-                                              chatViewModel.sendMessage("toYou",sendMessage.value)
+                                colors = TextFieldDefaults.textFieldColors(
+                                    textColor = Color.Gray,
+                                    disabledTextColor = Color.Transparent,
+                                    backgroundColor = Color(0xFFFAFAFA),
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    disabledIndicatorColor = Color.Transparent
+                                ),
+                                placeholder = {
+                                    Text(
+                                        text = "Type something..",
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF9A9A9A),
+                                        modifier = Modifier.padding(5.dp, 0.dp, 0.dp, 0.dp)
+                                    )
+                                },
+                                leadingIcon = {
+                                    Button(
+                                        onClick = {
 
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        backgroundColor = Color(0xFFF5F5F5),
-                                        contentColor = androidx.compose.ui.graphics.Color.White
-                                    ),
-                                    modifier = Modifier
-                                        .width(48.dp)
-                                        .height(48.dp),
-                                    shape = RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp),
-                                    contentPadding = PaddingValues(10.dp)
-                                ) {
+
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            backgroundColor = Color(0xFFF5F5F5),
+                                            contentColor = androidx.compose.ui.graphics.Color.White
+                                        ),
+                                        modifier = Modifier
+                                            .width(48.dp)
+                                            .height(48.dp),
+                                        shape = RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp),
+                                        contentPadding = PaddingValues(10.dp)
+                                    ) {
 //                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                                    Icon(
-                                        painter = painterResource(R.drawable.plus),
-                                        tint = Color(0xFFFFA925),
-                                        contentDescription = "Plus"
-                                    )
-                                }
-                            },
+                                        Icon(
+                                            painter = painterResource(R.drawable.plus),
+                                            tint = Color(0xFFFFA925),
+                                            contentDescription = "Plus"
+                                        )
+                                    }
+                                },
 
-                            trailingIcon = {
-                                Button(
-                                    onClick = { },
-                                    colors = ButtonDefaults.buttonColors(
-                                        backgroundColor = Color(0xFFF5F5F5),
-                                        contentColor = androidx.compose.ui.graphics.Color.White
-                                    ),
-                                    modifier = Modifier
-                                        .width(48.dp)
-                                        .height(48.dp),
-                                    shape = RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp),
-                                    contentPadding = PaddingValues(10.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.upload),
-                                        tint = Color(0xFFFFA925),
-                                        contentDescription = "Send"
-                                    )
-                                }
-                            },
+                                trailingIcon = {
+                                    Button(
+                                        onClick = {
+                                                scrollToEnd(scope,scrollState,messages.size-1)
+
+                                            chatViewModel.sendMessage("toYou", sendMessage.value)
+
+                                            sendMessage.value = ""
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            backgroundColor = Color(0xFFF5F5F5),
+                                            contentColor = androidx.compose.ui.graphics.Color.White
+                                        ),
+                                        modifier = Modifier
+                                            .width(48.dp)
+                                            .height(48.dp),
+                                        shape = RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp),
+                                        contentPadding = PaddingValues(10.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.upload),
+                                            tint = Color(0xFFFFA925),
+                                            contentDescription = "Send"
+                                        )
+                                    }
+                                },
 //                            singleLine = true,
                             )
 
                         }
 
                     }
-
 
 
                 }
@@ -343,11 +362,17 @@ fun ChatRoomScreen(
 //                }
 
 
-
             }
 
         }
     }
 
 
+}
+
+
+fun scrollToEnd(scope:CoroutineScope,scrollState:LazyListState,x:Int){
+    scope.launch{
+        scrollState.animateScrollToItem(x,0)
+    }
 }
