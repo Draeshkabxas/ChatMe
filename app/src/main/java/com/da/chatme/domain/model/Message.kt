@@ -7,4 +7,5 @@ data class Message(
     val email:String="",
     val to:String="",
     val message:String="",
+    var pictureUrl:String=""
 )

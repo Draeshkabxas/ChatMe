@@ -40,13 +40,14 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun makeFirebaseDatabase(auth:FirebaseAuth)=
+    fun makeFirebaseDatabase()=
         Firebase.database
 
     @Provides
     @Singleton
-    fun makeFirebaseStorage(auth:FirebaseAuth)=
+    fun makeFirebaseStorage()=
         FirebaseStorage.getInstance()
+
 
     @Provides
     @Singleton
@@ -57,8 +58,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun makeMessageApi(auth:FirebaseAuth,db:FirebaseDatabase): MessagesApi {
-        return MessagesApiImpl(auth,db)
+    fun makeMessageApi(storage: FirebaseStorage,auth:FirebaseAuth,db:FirebaseDatabase): MessagesApi {
+        return MessagesApiImpl(storage,auth,db)
     }
 
 }

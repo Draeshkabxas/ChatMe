@@ -1,7 +1,11 @@
 package com.da.chatme.Presentation.chat.components
 
 
+import android.net.Uri
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
@@ -16,9 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.da.chatme.Presentation.chat.ChatViewModel
 import com.da.chatme.R
 import com.da.chatme.domain.model.Message
@@ -47,6 +50,9 @@ fun ChatRoomScreen(
 ) {
 
     var sendMessage = rememberSaveable { mutableStateOf("") }
+    var imageUri by remember {
+        mutableStateOf<Uri?>(null)
+    }
 
     val scope = rememberCoroutineScope()
     Column(modifier = Modifier.fillMaxSize()) {
@@ -106,7 +112,7 @@ fun ChatRoomScreen(
                     Spacer(modifier = Modifier.size(15.dp, 15.dp))
                     Column(modifier = Modifier.padding(0.dp, 5.dp, 0.dp, 0.dp)) {
                         Text(
-                            "Alberto Moedano",
+                            chatViewModel.getEmail(),
                             fontSize = 14.sp,
                             color = androidx.compose.ui.graphics.Color.Black
                         )
@@ -202,10 +208,14 @@ fun ChatRoomScreen(
                             shape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 0.dp)
                         ) {
                             Column(modifier = Modifier.padding(20.dp)) {
-                                Row() {
+                                Row {
                                     Text(text = message.message, fontSize = 12.sp)
                                 }
-
+                                AsyncImage(
+                                    model = message.pictureUrl,
+                                    contentDescription = "image",
+                                    modifier = Modifier.size(200.dp)
+                                )
                             }
                         }
 
@@ -225,7 +235,11 @@ fun ChatRoomScreen(
                                 Row() {
                                     Text(text = message.message, fontSize = 12.sp)
                                 }
-
+                                AsyncImage(
+                                    model = message.pictureUrl,
+                                    contentDescription = "image",
+                                    modifier = Modifier.size(200.dp)
+                                )
                             }
                         }
 
@@ -233,8 +247,8 @@ fun ChatRoomScreen(
                 }
             }
         }
-        if(messages.isNotEmpty()){
-            scrollToEnd(scope,scrollState,messages.size-1)
+        if (messages.isNotEmpty()) {
+            scrollToEnd(scope, scrollState, messages.size - 1)
         }
         Row(
             modifier = Modifier
@@ -245,6 +259,13 @@ fun ChatRoomScreen(
             Column(modifier = Modifier.padding(10.dp)) {
                 Row() {
 
+
+                    val imageLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.PickVisualMedia(),
+                        onResult = { uri ->
+                            imageUri = uri
+                        }
+                    )
 
                     Column() {
                         Row() {
@@ -276,8 +297,9 @@ fun ChatRoomScreen(
                                 leadingIcon = {
                                     Button(
                                         onClick = {
-
-
+                                            imageLauncher.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
+                                            )
                                         },
                                         colors = ButtonDefaults.buttonColors(
                                             backgroundColor = Color(0xFFF5F5F5),
@@ -289,7 +311,6 @@ fun ChatRoomScreen(
                                         shape = RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp),
                                         contentPadding = PaddingValues(10.dp)
                                     ) {
-//                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                                         Icon(
                                             painter = painterResource(R.drawable.plus),
                                             tint = Color(0xFFFFA925),
@@ -301,9 +322,16 @@ fun ChatRoomScreen(
                                 trailingIcon = {
                                     Button(
                                         onClick = {
-                                                scrollToEnd(scope,scrollState,messages.size-1)
-
-                                            chatViewModel.sendMessage("toYou", sendMessage.value)
+                                            scrollToEnd(scope, scrollState, messages.size - 1)
+                                            if (imageUri != null) {
+                                                chatViewModel.uploadImage(imageUri!!,"hi",sendMessage.value)
+                                                imageUri=null
+                                            } else {
+                                                chatViewModel.sendMessage(
+                                                    "toYou",
+                                                    sendMessage.value
+                                                )
+                                            }
 
                                             sendMessage.value = ""
                                         },
@@ -324,55 +352,20 @@ fun ChatRoomScreen(
                                         )
                                     }
                                 },
-//                            singleLine = true,
                             )
-
                         }
-
                     }
-
-
                 }
-
-//                Column() {
-//                    Row() {
-//
-//                        Column() {
-//                            Button(
-//                                onClick = { },
-//                                colors = ButtonDefaults.buttonColors(
-//                                    backgroundColor = Color(0xFFF5F5F5),
-//                                    contentColor = androidx.compose.ui.graphics.Color.White
-//                                ),
-//                                modifier = Modifier
-//                                    .align(Alignment.End)
-//                                    .width(48.dp)
-//                                    .height(48.dp),
-//                                shape = RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp),
-//                                contentPadding = PaddingValues(10.dp)
-//                            ) {
-//                                Icon(
-//                                    painter = painterResource(R.drawable.vector__10_),
-//                                    tint = Color(0xFFFFA925),
-//                                    contentDescription = "Send"
-//                                )
-//                            }
-//                        }
-//                    }
-//                }
-
-
             }
-
         }
     }
-
-
 }
 
 
-fun scrollToEnd(scope:CoroutineScope,scrollState:LazyListState,x:Int){
-    scope.launch{
-        scrollState.animateScrollToItem(x,0)
+fun scrollToEnd(scope: CoroutineScope, scrollState: LazyListState, x: Int) {
+    scope.launch {
+        if(x >0) {
+            scrollState.animateScrollToItem(x, 0)
+        }
     }
 }
